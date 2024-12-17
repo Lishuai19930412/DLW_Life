@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using DG.Tweening;
-using System;
+using UnityEngine.SceneManagement;
 
 public class Node
 {
@@ -118,9 +118,22 @@ public class NextBtn : MonoBehaviour
 
 public class GlobalManager : MonoBehaviour
 {
+    [System.Serializable]
+    private class ST_DiePanel
+    {
+        public Image img_Bg;
+        public Image img_Blood_0;
+        public Image img_Blood_1;
+        public Image img_DieIcon;
+        public Text txt_DieInfo;
+        public Button btn_Reset;
+    }
+
     [SerializeField] private Image m_Img_Bg;
     [SerializeField] private Text m_Txt_StartTxt;
     [SerializeField] private Button m_Btn_Pbf;
+
+    [SerializeField] private ST_DiePanel m_DiePanel;
 
     private DAG m_Conf;
     private Node m_Node_RT;
@@ -151,7 +164,7 @@ public class GlobalManager : MonoBehaviour
             new ST_Node(19, 1, "回去干Unity", new int[] {10, 11, 12 }),
 
             new ST_Node(20, -1, "公司倒闭/被炒失业", new int[] {11, 12, 2, 3, 4 }),
-            new ST_Node(21, -1, "咬咬牙坚持下去", new int[] {92 }),
+            new ST_Node(21, -1, "坚持坚持，存够彩礼钱就跑", new int[] {92 }),
 
             new ST_Node(22, -1, "付费培训，倒贴入职", new int[] {91 }),
             new ST_Node(23, -1, "自学入行，海投面试", new int[] {14 }),
@@ -164,10 +177,10 @@ public class GlobalManager : MonoBehaviour
             new ST_Node(30, -1, "投资买量，梭哈就干", new int[] {93 }),
             new ST_Node(31, -1, "不舍得投资，慢慢自己运营", new int[] {91 }),
 
-            new ST_Node(90, -1, "die/被捆到缅甸，猝"),
-            new ST_Node(91, -1, "die/坐吃山空饿死，猝"),
-            new ST_Node(92, -1, "die/猝死"),
-            new ST_Node(93, -1, "die/入不敷出，血本无归，猝")
+            new ST_Node(90, -1, "die/连哄带骗\n被捆缅甸"),
+            new ST_Node(91, -1, "die/坐吃山空\n饿死家中"),
+            new ST_Node(92, -1, "die/优秀员工\n猝死岗中"),
+            new ST_Node(93, -1, "die/入不敷出\n血本无归")
         };
 
         m_Conf = new DAG();
@@ -190,6 +203,9 @@ public class GlobalManager : MonoBehaviour
 
         m_Conf.Root = m_Conf.Nodes[0];
         m_Node_RT = m_Conf.Root;
+
+        m_DiePanel.img_Bg.gameObject.SetActive(false);
+        m_DiePanel.btn_Reset.onClick.AddListener(() => { SceneManager.LoadScene(0); });
     }
     private void Start()
     {
@@ -244,109 +260,103 @@ public class GlobalManager : MonoBehaviour
         }
 
         return btnList;
-
-        //int btnId = 0;
-        //for (int i = 0; i < m_Node_RT.child.Count; i++)
-        //{
-        //    int tp = i;
-        //    if (m_Node_RT.child[i].limit > 0 || m_Node_RT.child[i].limit == -1)
-        //    {
-        //        if (i >= m_Btn_Next.Count)
-        //        {
-        //            Button btn = Instantiate(m_Btn_Pbf, m_Img_Bg.rectTransform);
-        //            ((RectTransform)btn.transform).sizeDelta = new Vector2(380, 50);
-        //            NextBtn nbtn = btn.gameObject.AddComponent<NextBtn>();
-        //            nbtn.Txt.text = m_Node_RT.child[i].val;
-        //            nbtn.Btn.onClick.AddListener(() => { ClickNextBtn(tp); }); 
-        //            m_Btn_Next.Add(nbtn);
-        //        }
-        //        else
-        //        {
-        //            m_Btn_Next[btnId].Txt.text = m_Node_RT.child[i].val;
-        //            m_Btn_Next[btnId].Btn.onClick.RemoveAllListeners();
-        //            m_Btn_Next[btnId].Btn.onClick.AddListener(() => { ClickNextBtn(tp); });
-        //        }
-        //        btnId++;
-        //    }
-        //}
-
-        //for(int i = 0; i < m_Btn_Next.Count; i++)
-        //{
-        //    if (i < btnId)
-        //    {
-        //        m_Btn_Next[i].gameObject.SetActive(true);
-        //    }
-        //    else
-        //    {
-        //        Destroy(m_Btn_Next[i].gameObject);
-        //    }
-        //}
-
-        //m_Btn_Next.RemoveRange(btnId, m_Btn_Next.Count - btnId);
     }
 
     private void ClickNextBtn(int id)
     {
-        Sequence seq = DOTween.Sequence();
-
         if(m_Node_RT.child[id].limit > 0)
         {
             m_Node_RT.child[id].limit -= 1;
         }
 
-        if (m_IsStart == true)//如果是从根节点开始的点击按钮
+        if (m_Node_RT.child[id].child.Count == 1 && m_Node_RT.child[id].child[0].val.StartsWith("die/") == true)//下一个节点是死亡
         {
-            m_IsStart = false;
-            seq.Insert(0, m_Txt_StartTxt.DOColor(new Color(1, 1, 1, 0), 1f));
-        }
-        else//如果是从根节点后面的开始的点击按钮
-        {
-            NextBtn oldBtnRT = m_Btn_RT;
-            seq.Insert(0, oldBtnRT.Cgp.DOFade(0, 1f).OnComplete(() => { Destroy(oldBtnRT.gameObject); }));
-        }
-
-        m_Btn_RT = m_Btn_Next[id];
-        m_Btn_RT.transform.SetSiblingIndex(1);
-        m_Btn_RT.Cgp.blocksRaycasts = false;
-        m_Node_RT = m_Node_RT.child[id];
-        m_Btn_Next.Remove(m_Btn_RT);
-        List<NextBtn> oldBtn = m_Btn_Next;   
-
-        for (int i = 0; i < oldBtn.Count; i++)
-        {
-            int tp = i;
-            oldBtn[i].Cgp.blocksRaycasts = false;
-            seq.Insert(0, oldBtn[i].Cgp.DOFade(0, 1f).OnComplete(() => { Destroy(oldBtn[tp].gameObject); }));
-        }
-        
-        seq.Insert(1f, ((RectTransform)m_Btn_RT.transform).DOAnchorPos(new Vector2(0, 250), 0.7f));
-        seq.Insert(1f, ((RectTransform)m_Btn_RT.transform).DOSizeDelta(new Vector2(380, 80), 0.5f));
-        seq.Insert(1f, m_Btn_RT.Btn.targetGraphic.DOColor(new Color32(255, 240, 120, 255), 0.5f));
-
-        m_Btn_Next = CreateNextBtn();
-        for (int i = 0; i < m_Btn_Next.Count; i++)
-        {
-            ((RectTransform)m_Btn_Next[i].transform).anchoredPosition = new Vector2(-480, 100 - 80 * i);
-            m_Btn_Next[i].Btn.targetGraphic.color = Color.white;
-            m_Btn_Next[i].Cgp.alpha = 0;
-            m_Btn_Next[i].Cgp.blocksRaycasts = false;
-        }
-
-        float baseTime = seq.Duration(false);
-
-        for (int i = 0; i < m_Btn_Next.Count; i++)
-        {
-            seq.Insert(baseTime + i * 0.15f, ((RectTransform)m_Btn_Next[i].transform).DOAnchorPos(new Vector2(0, 100 - 80 * i), 0.8f));
-            seq.Insert(baseTime + i * 0.15f, m_Btn_Next[i].Cgp.DOFade(1, 0.6f));
-        }
-
-        seq.AppendCallback(() =>
-        {
+            m_Btn_RT.Cgp.blocksRaycasts = false;
             for (int i = 0; i < m_Btn_Next.Count; i++)
             {
-                m_Btn_Next[i].Cgp.blocksRaycasts = true;
+                m_Btn_Next[i].Cgp.blocksRaycasts = false;
             }
-        });
+
+            m_DiePanel.img_Bg.gameObject.SetActive(true);
+            m_DiePanel.img_Bg.color = Color.clear;
+            m_DiePanel.img_Blood_0.color = new Color32(255, 255, 255, 0);
+            m_DiePanel.img_Blood_1.fillAmount = 0;
+            m_DiePanel.img_DieIcon.color = new Color32(200, 60, 60, 0);
+            m_DiePanel.img_DieIcon.transform.localScale = Vector3.one * 6;
+            m_DiePanel.txt_DieInfo.text = "";
+            m_DiePanel.btn_Reset.gameObject.SetActive(false);
+            m_DiePanel.btn_Reset.targetGraphic.color = new Color32(255, 140, 0, 0);
+
+            Sequence seq = DOTween.Sequence();
+            seq.Insert(0, m_DiePanel.img_Bg.DOColor(new Color32(0, 0, 0, 255), 1.5f).SetEase(Ease.Linear));
+            seq.Insert(0, m_DiePanel.img_Blood_0.DOColor(new Color32(255, 255, 255, 128), 2f).SetEase(Ease.Linear));
+            seq.Insert(2f, m_DiePanel.txt_DieInfo.DOText(m_Node_RT.child[id].child[0].val.Replace("die/", ""), 2.7f).SetEase(Ease.Linear));
+            seq.AppendInterval(0.5f);
+            seq.Append(m_DiePanel.img_DieIcon.DOColor(new Color32(200, 60, 60, 255), 1.2f).SetEase(Ease.InQuad));
+            seq.Join(m_DiePanel.img_DieIcon.transform.DOScale(new Vector3(1, 1, 1), 1.2f).SetEase(Ease.InQuad));
+            seq.Join(m_DiePanel.img_Blood_1.DOFillAmount(1, 1f).SetEase(Ease.Linear));
+            seq.AppendInterval(0.3f);
+            seq.AppendCallback(() => { m_DiePanel.btn_Reset.gameObject.SetActive(true); });
+            seq.Append(m_DiePanel.btn_Reset.targetGraphic.DOColor(new Color32(255, 140, 0, 255), 1f).SetEase(Ease.Linear));
+        }
+        else//下一个节点不是死亡
+        {
+            Sequence seq = DOTween.Sequence();
+
+            if (m_IsStart == true)//如果是从根节点开始的点击按钮
+            {
+                m_IsStart = false;
+                seq.Insert(0, m_Txt_StartTxt.DOColor(new Color(1, 1, 1, 0), 1f));
+            }
+            else//如果是从根节点后面的开始的点击按钮
+            {
+                NextBtn oldBtnRT = m_Btn_RT;
+                seq.Insert(0, oldBtnRT.Cgp.DOFade(0, 1f).OnComplete(() => { Destroy(oldBtnRT.gameObject); }));
+            }
+
+            m_Btn_RT = m_Btn_Next[id];
+            m_Btn_RT.transform.SetSiblingIndex(1);
+            m_Btn_RT.Cgp.blocksRaycasts = false;
+            m_Node_RT = m_Node_RT.child[id];
+            m_Btn_Next.Remove(m_Btn_RT);
+            List<NextBtn> oldBtn = m_Btn_Next;
+
+            for (int i = 0; i < oldBtn.Count; i++)
+            {
+                int tp = i;
+                oldBtn[i].Cgp.blocksRaycasts = false;
+                seq.Insert(0, oldBtn[i].Cgp.DOFade(0, 1f).OnComplete(() => { Destroy(oldBtn[tp].gameObject); }));
+            }
+
+            seq.Insert(1f, ((RectTransform)m_Btn_RT.transform).DOAnchorPos(new Vector2(0, 250), 0.7f));
+            seq.Insert(1f, ((RectTransform)m_Btn_RT.transform).DOSizeDelta(new Vector2(380, 80), 0.5f));
+            seq.Insert(1f, m_Btn_RT.Btn.targetGraphic.DOColor(new Color32(255, 240, 120, 255), 0.5f));
+
+            m_Btn_Next = CreateNextBtn();
+            for (int i = 0; i < m_Btn_Next.Count; i++)
+            {
+                ((RectTransform)m_Btn_Next[i].transform).anchoredPosition = new Vector2(-480, 100 - 80 * i);
+                m_Btn_Next[i].Btn.targetGraphic.color = Color.white;
+                m_Btn_Next[i].Cgp.alpha = 0;
+                m_Btn_Next[i].Cgp.blocksRaycasts = false;
+            }
+
+            float baseTime = seq.Duration(false);
+
+            for (int i = 0; i < m_Btn_Next.Count; i++)
+            {
+                seq.Insert(baseTime + i * 0.15f, ((RectTransform)m_Btn_Next[i].transform).DOAnchorPos(new Vector2(0, 100 - 80 * i), 0.8f));
+                seq.Insert(baseTime + i * 0.15f, m_Btn_Next[i].Cgp.DOFade(1, 0.6f));
+            }
+
+            seq.AppendCallback(() =>
+            {
+                for (int i = 0; i < m_Btn_Next.Count; i++)
+                {
+                    m_Btn_Next[i].Cgp.blocksRaycasts = true;
+                }
+            });
+        }
     }
 }
 
